@@ -39,8 +39,8 @@ Environment variables are read directly; `.env` files are not automatically load
 
 Use HTTPS, an appropriate WSGI/ASGI server, secure cookie/proxy settings and
 `python manage.py check --deploy` for an actual deployment. `runserver` and the
-provided defaults are for local review. API authentication uses tokens; the admin
-uses Django sessions and CSRF protection. API tokens persist until deleted from
+provided defaults are for local development. API authentication uses tokens;
+the admin uses Django sessions and CSRF protection. API tokens persist until deleted from
 the database/admin; frontend logout removes the browser copy only.
 
 ## API contract
@@ -85,12 +85,11 @@ Successful create returns 201, read/update 200, and delete 204 with no body.
 Validation errors are field-keyed JSON (400); invalid/missing tokens return 401,
 forbidden object access 403, missing resources 404. Unsupported methods return 405.
 
-### Authorization decisions
+### Permissions
 
-The supplied frontend does not specify every permission edge case. These explicit
-policies apply consistently: owners are always board members; members can update
-boards, membership and tasks; only owners delete boards. Task creators or board
-owners may delete tasks. Only comment authors may delete their comments, even
+Owners are always board members; members can update boards, membership and tasks.
+Only owners delete boards. Task creators who still have board access, or board
+owners, may delete tasks. Only comment authors may delete their comments, even
 when another user has the same name. Nested comment IDs are scoped to their task.
 Nonmembers cannot access existing board/task/comment objects. Personal lists only
 include accessible tasks. Removing members clears their assignments and review
@@ -125,8 +124,6 @@ The HTTP smoke test creates a temporary database, migrates it, starts a real loc
 server on an available port, exercises the API, and stops the server. It needs no
 running server or frontend. Tests cover authentication, response contracts,
 permissions, membership, assignments, validation, nested comments, admin and CORS.
-The external PM tests are unavailable: local passing tests or code coverage cannot
-prove their required 95% pass rate.
 
 ## Project structure and limitations
 
@@ -135,14 +132,8 @@ each expose an `api/` package. CRUD uses explicit-field ModelSerializers and DRF
 viewsets/generics. Membership operations live in services, not model methods.
 Tests and verification tools are part of this backend repository.
 
-A local `frontend/` copy may be present for configuration/reference only and is
-fully ignored by Git. Backend commands do not read it. Original frontend logic
-remains unchanged. Known reference frontend issues: create-dialog member removal
-uses an ID as an array offset; membership updates can render before completion;
-plus-address lookup is not URL-encoded; templates insert text using innerHTML.
-Use fictional demo data. These frontend issues are documented, not silently fixed
-by changing API content or frontend application logic.
+A local `frontend/` directory is ignored by Git and is not required by any backend
+command. API clients must enforce appropriate HTML escaping when displaying text
+fields and handle authorization errors according to the permissions above.
 
-No databases, virtual environments, real secrets, or outer working logs belong in
-this repository. The separate review archive includes the original inputs and
-local frontend copy, while excluding environments, databases, caches and secrets.
+Do not commit databases, virtual environments, caches or secrets.

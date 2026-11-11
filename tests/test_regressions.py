@@ -1,4 +1,4 @@
-"""Regression cases independently discovered during audit."""
+"""Account identity, admin assignment and comment ownership regressions."""
 
 from django.core.management import call_command
 from django.core.management.base import CommandError
@@ -10,7 +10,7 @@ from tasks_app.models import Task
 from .helpers import ApiCase
 
 
-class AuditRegressionTests(ApiCase):
+class AccountIntegrityRegressionTests(ApiCase):
     def test_valid_email_does_not_become_invalid_username(self):
         long_email = "a" * 64 + "@" + "b" * 63 + "." + "c" * 63 + ".com"
         for email in ["o'brien@example.com", long_email]:

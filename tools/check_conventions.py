@@ -1,4 +1,4 @@
-"""Check all first-party Python functions against the checklist."""
+"""Check function length limits and disallow print calls."""
 
 import ast
 from pathlib import Path

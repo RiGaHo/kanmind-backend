@@ -103,6 +103,16 @@ def check_task(base, task, owner, member):
     request(base, path, "DELETE", token=member["token"], expected=403)
 
 
+def check_member_deletion(base, board, member):
+    token = member["token"]
+    request(base, f"boards/{board['id']}/", "DELETE", token=token, expected=403)
+    data = {"board": board["id"], "title": "Member task", "due_date": "2027-01-01"}
+    task = request(base, "tasks/", "POST", data, token, 201)
+    path = f"tasks/{task['id']}/"
+    request(base, path, "DELETE", token=token, expected=204)
+    request(base, path, token=token, expected=404)
+
+
 def check_identity(base, owner, member):
     data = {"email": owner["email"], "password": "SmokePassword42!"}
     assert request(base, "login/", "POST", data) == owner
@@ -123,6 +133,7 @@ def exercise(base):
     check_identity(base, owner, member)
     board, task = create_board_task(base, owner, member)
     check_task(base, task, owner, member)
+    check_member_deletion(base, board, member)
     check_comments(base, owner["token"], task)
     check_permissions(base, board, task, outsider)
     check_board_and_delete(base, board, task, owner["token"])
