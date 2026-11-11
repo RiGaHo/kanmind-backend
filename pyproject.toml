@@ -1,0 +1,9 @@
+[tool.ruff]
+line-length = 88
+extend-exclude = ["frontend", "migrations"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+
+[tool.ruff.format]
+quote-style = "double"
