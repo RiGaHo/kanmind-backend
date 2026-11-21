@@ -5,6 +5,8 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DEBUG = os.environ.get("DJANGO_DEBUG", "true").lower() == "true"
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "demo-only-not-for-production-kanmind")
 if not DEBUG and SECRET_KEY == "demo-only-not-for-production-kanmind":
     raise ValueError("Set DJANGO_SECRET_KEY when DEBUG is false.")

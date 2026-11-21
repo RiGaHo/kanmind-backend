@@ -37,11 +37,21 @@ Environment variables are read directly; `.env` files are not automatically load
 | `DJANGO_DB_PATH` | `db.sqlite3` in project root | SQLite location |
 | `CORS_ALLOWED_ORIGINS` | localhost and 127.0.0.1 on ports 5500 and 3000 | Comma-separated browser origins |
 
-Use HTTPS, an appropriate WSGI/ASGI server, secure cookie/proxy settings and
-`python manage.py check --deploy` for an actual deployment. `runserver` and the
-provided defaults are for local development. API authentication uses tokens;
-the admin uses Django sessions and CSRF protection. API tokens persist until deleted from
-the database/admin; frontend logout removes the browser copy only.
+Set `DJANGO_DEBUG=false` in production: session and CSRF cookies then carry the
+Secure flag. With the default `DJANGO_DEBUG=true`, local HTTP development remains
+supported. API authentication uses tokens; the admin uses Django sessions and
+CSRF protection. API tokens persist until deleted from the database/admin;
+frontend logout removes the browser copy only.
+
+Public HTTPS redirects and HSTS are managed by the existing Cloudflare/Traefik
+infrastructure. Django's redirect, HSTS and proxy-header settings remain unchanged;
+`python manage.py check --deploy` therefore reports W004 and W008. These warnings
+are not suppressed. On the Raspberry Pi, verify `DJANGO_DEBUG=false`, secure admin
+cookies, external HTTP-to-HTTPS redirection, the HTTPS HSTS response header, and
+successful admin login/CSRF handling through the proxy without redirect loops.
+Secure cookies do not require Django to trust a forwarded header. If secure-request
+recognition needs adjustment for the deployed proxy, first verify its header
+sanitization and trusted peers; do not blindly trust client-supplied headers.
 
 ## API contract
 
