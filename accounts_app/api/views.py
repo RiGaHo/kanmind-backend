@@ -30,11 +30,14 @@ def identity(user):
 
 
 class RegistrationView(generics.GenericAPIView):
+    """Register public accounts and return their authentication identity."""
+
     serializer_class = RegistrationSerializer
     permission_classes = [permissions.AllowAny]
     authentication_classes = []
 
     def post(self, request):
+        """Create the account and token atomically, handling duplicate emails."""
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         try:
@@ -46,11 +49,14 @@ class RegistrationView(generics.GenericAPIView):
 
 
 class LoginView(generics.GenericAPIView):
+    """Authenticate accounts by email and password."""
+
     serializer_class = LoginSerializer
     permission_classes = [permissions.AllowAny]
     authentication_classes = []
 
     def post(self, request):
+        """Resolve the email login and return a token for valid credentials."""
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
@@ -63,10 +69,13 @@ class LoginView(generics.GenericAPIView):
 
 
 class EmailCheckView(generics.GenericAPIView):
+    """Allow authenticated clients to find active accounts by exact email."""
+
     serializer_class = EmailQuerySerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
+        """Validate the email query and return the matching public identity."""
         serializer = self.get_serializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
         user = get_object_or_404(

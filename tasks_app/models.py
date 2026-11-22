@@ -5,6 +5,8 @@ from django.db import models
 
 
 class Task(models.Model):
+    """Store a board task, its workflow state, and assigned participants."""
+
     STATUS = [(value, value) for value in ["to-do", "in-progress", "review", "done"]]
     PRIORITY = [(value, value) for value in ["low", "medium", "high"]]
     board = models.ForeignKey(
@@ -37,13 +39,18 @@ class Task(models.Model):
     due_date = models.DateField()
 
     class Meta:
+        """Return tasks in stable creation order."""
+
         ordering = ["id"]
 
     def __str__(self):
+        """Identify tasks by title in admin and relation widgets."""
         return self.title
 
 
 class Comment(models.Model):
+    """Store an authored, timestamped message belonging to a task."""
+
     task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name="comments")
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="comments"
@@ -52,7 +59,10 @@ class Comment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        """Order comments chronologically with a stable tie breaker."""
+
         ordering = ["created_at", "id"]
 
     def __str__(self):
+        """Show a short content preview in admin relation widgets."""
         return self.content[:60]

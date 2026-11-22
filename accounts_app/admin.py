@@ -8,6 +8,8 @@ from .models import UserProfile
 
 @admin.register(UserProfile)
 class UserProfileAdmin(UserAdmin):
+    """Extend password-aware account administration with profile fields."""
+
     fieldsets = UserAdmin.fieldsets + (("Display name", {"fields": ("fullname",)}),)
     add_fieldsets = UserAdmin.add_fieldsets + (
         ("Profile", {"fields": ("email", "fullname")}),

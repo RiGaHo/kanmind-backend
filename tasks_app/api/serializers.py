@@ -1,15 +1,29 @@
 """Task relationship validation and frontend representations."""
 
 from rest_framework import serializers
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import NotFound, PermissionDenied
 
 from accounts_app.api.serializers import UserSerializer
 from accounts_app.models import UserProfile
 from boards_app.api.permissions import is_member
+from boards_app.models import Board
 from tasks_app.models import Comment, Task
 
 
+class TaskBoardField(serializers.PrimaryKeyRelatedField):
+    """Distinguish a missing board on creation from invalid request data."""
+
+    def fail(self, key, **kwargs):
+        """Translate only missing-board creation errors to the documented 404."""
+        if key == "does_not_exist" and self.root.instance is None:
+            raise NotFound("Board not found.")
+        super().fail(key, **kwargs)
+
+
 class TaskSerializer(serializers.ModelSerializer):
+    """Validate task relationships and expose public participant details."""
+
+    board = TaskBoardField(queryset=Board.objects.all())
     assignee = UserSerializer(read_only=True)
     reviewer = UserSerializer(read_only=True)
     assignee_id = serializers.PrimaryKeyRelatedField(
@@ -29,6 +43,8 @@ class TaskSerializer(serializers.ModelSerializer):
     comments_count = serializers.IntegerField(source="comments.count", read_only=True)
 
     class Meta:
+        """Expose task attributes and separate writable participant IDs."""
+
         model = Task
         fields = [
             "id",
@@ -46,11 +62,13 @@ class TaskSerializer(serializers.ModelSerializer):
         ]
 
     def validate_title(self, value):
+        """Reject titles shorter than the supported minimum."""
         if len(value) < 3:
             raise serializers.ValidationError("Use at least three characters.")
         return value
 
     def validate(self, attrs):
+        """Require board access, prevent board moves, and validate participants."""
         board = attrs.get("board", getattr(self.instance, "board", None))
         if not is_member(self.context["request"].user, board):
             raise PermissionDenied("You are not a board member.")
@@ -60,6 +78,7 @@ class TaskSerializer(serializers.ModelSerializer):
         return attrs
 
     def validate_people(self, attrs, board):
+        """Require assigned participants to retain access to the task board."""
         for field in ["assignee", "reviewer"]:
             person = attrs.get(field, getattr(self.instance, field, None))
             if person and not is_member(person, board):
@@ -69,9 +88,13 @@ class TaskSerializer(serializers.ModelSerializer):
 
 
 class CommentSerializer(serializers.ModelSerializer):
+    """Accept comment text and expose its author name and timestamp."""
+
     author = serializers.CharField(source="author.fullname", read_only=True)
 
     class Meta:
+        """Keep comment identity, authorship, and creation time read-only."""
+
         model = Comment
         fields = ["id", "author", "created_at", "content"]
         read_only_fields = ["id", "author", "created_at"]

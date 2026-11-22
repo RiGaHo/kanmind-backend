@@ -11,6 +11,8 @@ from tasks_app.api.serializers import TaskSerializer
 
 
 class BoardSerializer(serializers.ModelSerializer):
+    """Accept board edits and provide action-specific board responses."""
+
     members = serializers.PrimaryKeyRelatedField(
         many=True, queryset=UserProfile.objects.filter(is_active=True), required=False
     )
@@ -20,6 +22,8 @@ class BoardSerializer(serializers.ModelSerializer):
     tasks_high_prio_count = serializers.SerializerMethodField()
 
     class Meta:
+        """Expose board summaries while keeping ownership read-only."""
+
         model = Board
         fields = [
             "id",
@@ -34,18 +38,22 @@ class BoardSerializer(serializers.ModelSerializer):
         read_only_fields = ["owner_id"]
 
     def validate_title(self, value):
+        """Reject titles shorter than the supported minimum."""
         if len(value) < 3:
             raise serializers.ValidationError("Use at least three characters.")
         return value
 
     def get_tasks_to_do_count(self, obj):
+        """Count pending tasks using the prefetched task collection."""
         return sum(task.status == "to-do" for task in obj.tasks.all())
 
     def get_tasks_high_prio_count(self, obj):
+        """Count high-priority tasks using the prefetched task collection."""
         return sum(task.priority == "high" for task in obj.tasks.all())
 
     @transaction.atomic
     def create(self, validated_data):
+        """Create a board and apply its initial membership atomically."""
         members = validated_data.pop("members", [])
         board = Board.objects.create(**validated_data)
         set_members(board, members)
@@ -53,6 +61,7 @@ class BoardSerializer(serializers.ModelSerializer):
 
     @transaction.atomic
     def update(self, instance, validated_data):
+        """Apply board edits and optional membership replacement atomically."""
         members = validated_data.pop("members", None)
         instance = super().update(instance, validated_data)
         if members is not None:
@@ -60,8 +69,12 @@ class BoardSerializer(serializers.ModelSerializer):
         return instance
 
     def to_representation(self, instance):
+        """Add detail data and PATCH identities while retaining existing fields."""
         data = super().to_representation(instance)
         if self.context["view"].action in ["retrieve", "update", "partial_update"]:
             data["members"] = UserSerializer(instance.members.all(), many=True).data
             data["tasks"] = TaskSerializer(instance.tasks.all(), many=True).data
+        if self.context["view"].action == "partial_update":
+            data["owner_data"] = UserSerializer(instance.owner).data
+            data["members_data"] = data["members"]
         return data

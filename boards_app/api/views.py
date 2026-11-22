@@ -10,11 +10,14 @@ from .serializers import BoardSerializer
 
 
 class BoardViewSet(viewsets.ModelViewSet):
+    """Expose board operations with membership and ownership checks."""
+
     queryset = Board.objects.prefetch_related("members", "tasks").all()
     serializer_class = BoardSerializer
     permission_classes = [permissions.IsAuthenticated, BoardPermission]
 
     def get_queryset(self):
+        """Limit board lists to owned or joined boards."""
         queryset = super().get_queryset()
         if self.action == "list":
             user = self.request.user
@@ -22,4 +25,5 @@ class BoardViewSet(viewsets.ModelViewSet):
         return queryset
 
     def perform_create(self, serializer):
+        """Store the authenticated creator as the immutable board owner."""
         serializer.save(owner=self.request.user)
